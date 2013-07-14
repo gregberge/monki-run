@@ -1,12 +1,7 @@
-var stage = new PIXI.Stage(0xffffff, true);
-var renderer = PIXI.autoDetectRenderer(400, 300);
+var stage = require('./stage'),
+  renderer = require('./renderer'),
+  game = require('./game');
+
 document.body.appendChild(renderer.view);
-
-function animate() {
-  requestAnimFrame(animate);
-
-  // render the stage
-  renderer.render(stage);
-}
-
-requestAnimFrame(animate);
+renderer.start(stage);
+game.start(stage);
