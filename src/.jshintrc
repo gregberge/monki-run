@@ -56,7 +56,6 @@
   "devel": true,
 
   "globals": {
-    "PIXI": false,
     "requestAnimFrame": false
   }
 }
