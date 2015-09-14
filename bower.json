@@ -1,9 +1,0 @@
-{
-  "name": "monki-run",
-  "version": "0.0.0",
-  "main": "index.html",
-  "dependencies": {
-    "KeyboardJS": "~0.4.2",
-    "pixi": "~1.2.0"
-  }
-}

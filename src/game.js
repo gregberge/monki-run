@@ -1,23 +1,38 @@
-var monki = require('./monki'),
-  tileMap = require('./tile-map');
+import PIXI from 'pixi.js';
+import monki from './monki';
+import tileMap from './tile-map';
+import renderer from './renderer';
+import stage from './stage';
 
-var PIXI = require('pixi');
+/**
+ * Start the game.
+ */
 
-exports.start = function (stage) {
+export function start() {
   monki.position.x = 20;
+
   stage.addChild(monki);
   stage.addChild(tileMap);
 
 
-  var lastCalledTime = new Date().getTime();
-
   function update () {
-    requestAnimFrame(update);
+    requestAnimationFrame(update);
 
-    var dt = (new Date().getTime() - lastCalledTime)/1000;
+    // Compute delta time
+    const dt = lastCalledTime ? (new Date().getTime() - lastCalledTime) / 1000 : 0;
 
+    // Update monki
     monki.update(dt);
+
+    const monkiBottom = new PIXI.Point(monki.position.x, monki.position.y + monki.height);
+    monki.setGround(tileMap.getCollidingTileRect(monkiBottom));
+
+    // Render container
+    renderer.render(stage);
+
+    lastCalledTime = new Date().getTime();
   }
 
-  requestAnimFrame(update);
-};
+  let lastCalledTime;
+  requestAnimationFrame(update);
+}

@@ -1,3 +1,3 @@
-var PIXI = require('pixi');
+import PIXI from 'pixi.js';
 
-module.exports = new PIXI.Stage(0xffffff, true);
+export default new PIXI.Container();

@@ -1,7 +1,5 @@
-var stage = require('./stage'),
-  renderer = require('./renderer'),
-  game = require('./game');
+import renderer from './renderer';
+import {start} from './game';
 
 document.body.appendChild(renderer.view);
-renderer.start(stage);
-game.start(stage);
+start();
