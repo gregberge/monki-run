@@ -1,15 +1,20 @@
 import PIXI from 'pixi.js';
 import keys from './keys';
+import Animation from './utils/animation';
 
-class Monki extends PIXI.Sprite {
+const move = new PIXI.Point(300, 0);
+
+class Monki extends PIXI.extras.TilingSprite {
   constructor() {
-    const texture = PIXI.Texture.fromImage('src/textures/monki@2x.png');
-    super(texture);
+    const texture = PIXI.Texture.fromImage('src/textures/mario-sprite.png');
+    super(texture, 16, 32);
 
     this.gravityForce = new PIXI.Point(0, 0);
     this.jumpForce = new PIXI.Point(0, 0);
     this.velocity = new PIXI.Point(0, 0);
     this.jumped = false;
+    this.ground = [];
+    this.walkAnimation = new Animation(this, [1, 2, 0], move.x / 6);
   }
 
   /**
@@ -30,13 +35,18 @@ class Monki extends PIXI.Sprite {
   }
 
   applyMove(dt) {
-    const move = new PIXI.Point(300, 0);
-
-    if (keys.right)
+    if (keys.right) {
       this.position.x += move.x * dt;
-
-    if (keys.left)
+      this.tileScale.x = -1;
+      this.walkAnimation.update(dt);
+    } else if (keys.left) {
       this.position.x -= move.x * dt;
+      this.tileScale.x = 1;
+      this.walkAnimation.update(dt);
+    } else {
+      this.tilePosition.x = this.tileScale.x * this.width - this.width;
+      this.walkAnimation.reset();
+    }
   }
 
   applyJump(dt) {
@@ -66,7 +76,7 @@ class Monki extends PIXI.Sprite {
    */
 
   applyGravity(dt) {
-    const gravity = new PIXI.Point(0, 15);
+    const gravity = new PIXI.Point(0, 20);
     const gravityStep = new PIXI.Point(gravity.x * dt, gravity.y * dt);
 
     this.gravityForce.x += gravityStep.x;

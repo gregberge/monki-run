@@ -9,16 +9,12 @@ import Platform from './platform';
  */
 
 const map = [
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  1, 1, 1, 1, 1, 1, 1, 1, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 ];
 
 class TileMap extends PIXI.Container {
@@ -26,18 +22,32 @@ class TileMap extends PIXI.Container {
     super();
 
     this.map = map;
+    this.position.y = 200;
 
     this.tileSize = {
       width: 50,
-      height: 50
+      height: 15
     };
 
     this.tileLength = {
-      width: 10,
-      height: 10
+      width: 30,
+      height: 20
     };
 
     this.map.forEach(this.addTile.bind(this));
+  }
+
+  /**
+   * Update loop.
+   *
+   * @param {number} dt Delta time
+   */
+
+  update(dt) {
+    this.position.x -= dt * 200;
+
+    if (this.position.x < -1000)
+      this.position.x = 0;
   }
 
   /**
@@ -54,6 +64,8 @@ class TileMap extends PIXI.Container {
     const platform = new Platform();
     platform.position.x = this.tileSize.width * (index % this.tileLength.width);
     platform.position.y = this.tileSize.height * Math.floor(index / this.tileLength.width);
+    platform.width = this.tileSize.width;
+    platform.height = this.tileSize.height;
     this.addChild(platform);
   }
 
@@ -65,8 +77,8 @@ class TileMap extends PIXI.Container {
    */
 
   getTileCoordForPosition(position) {
-    const x = Math.floor(position.x / this.tileSize.width);
-    const y = Math.floor(position.y / this.tileSize.height);
+    const x = Math.floor((position.x - this.position.x) / this.tileSize.width);
+    const y = Math.floor((position.y - this.position.y) / this.tileSize.height);
     return new PIXI.Point(x, y);
   }
 
@@ -89,7 +101,7 @@ class TileMap extends PIXI.Container {
    */
 
   getTileRectFromTileCoords(tileCoords) {
-    const origin = new PIXI.Point(tileCoords.x * this.tileSize.width, tileCoords.y * this.tileSize.height);
+    const origin = new PIXI.Point(tileCoords.x * this.tileSize.width + this.position.x, tileCoords.y * this.tileSize.height + this.position.y);
     return new PIXI.Rectangle(origin.x, origin.y, this.tileSize.width, this.tileSize.height);
   }
 

@@ -26479,10 +26479,6 @@ var _monki = require('./monki');
 
 var _monki2 = _interopRequireDefault(_monki);
 
-var _tileMap = require('./tile-map');
-
-var _tileMap2 = _interopRequireDefault(_tileMap);
-
 var _renderer = require('./renderer');
 
 var _renderer2 = _interopRequireDefault(_renderer);
@@ -26491,39 +26487,48 @@ var _stage = require('./stage');
 
 var _stage2 = _interopRequireDefault(_stage);
 
+var _utilsTileMatcher = require('./utils/tile-matcher');
+
+var _utilsTileMatcher2 = _interopRequireDefault(_utilsTileMatcher);
+
 /**
  * Start the game.
  */
 
-function start() {
+function start(_ref) {
+  var world = _ref.world;
+
+  var tileMatcher = new _utilsTileMatcher2.default(world);
+
   _monki2.default.position.x = 20;
 
+  _stage2.default.addChild(world.tiledMap);
   _stage2.default.addChild(_monki2.default);
-  _stage2.default.addChild(_tileMap2.default);
 
   function update() {
     requestAnimationFrame(update);
 
     // Compute delta time
-    var dt = lastCalledTime ? (new Date().getTime() - lastCalledTime) / 1000 : 0;
+    var dt = lastCalledTime ? (Date.now() - lastCalledTime) / 1000 : 0;
 
     // Update monki
     _monki2.default.update(dt);
 
-    var monkiBottom = new _pixiJs2.default.Point(_monki2.default.position.x, _monki2.default.position.y + _monki2.default.height);
-    _monki2.default.setGround(_tileMap2.default.getCollidingTileRect(monkiBottom));
+    var monkiBottomRight = new _pixiJs2.default.Point(_monki2.default.position.x + _monki2.default.width, _monki2.default.position.y + _monki2.default.height);
+    var monkiBottomLeft = new _pixiJs2.default.Point(_monki2.default.position.x, _monki2.default.position.y + _monki2.default.height);
+    _monki2.default.setGround(tileMatcher.getTileAtPosition(monkiBottomRight, { layer: 'Platforms' }) || tileMatcher.getTileAtPosition(monkiBottomLeft, { layer: 'Platforms' }));
 
     // Render container
     _renderer2.default.render(_stage2.default);
 
-    lastCalledTime = new Date().getTime();
+    lastCalledTime = Date.now();
   }
 
   var lastCalledTime = undefined;
   requestAnimationFrame(update);
 }
 
-},{"./monki":133,"./renderer":135,"./stage":136,"./tile-map":137,"pixi.js":112}],131:[function(require,module,exports){
+},{"./monki":134,"./renderer":135,"./stage":136,"./utils/tile-matcher":138,"pixi.js":112}],131:[function(require,module,exports){
 Object.defineProperty(exports, '__esModule', {
   value: true
 });
@@ -26557,18 +26562,47 @@ exports.default = states;
 module.exports = exports.default;
 
 },{}],132:[function(require,module,exports){
+Object.defineProperty(exports, '__esModule', {
+  value: true
+});
+exports.load = load;
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+var _pixiJs = require('pixi.js');
+
+var _pixiJs2 = _interopRequireDefault(_pixiJs);
+
+require('pixi-tiled');
+
+/**
+ * Load game resources.
+ *
+ * @param {function} cb
+ */
+
+function load(cb) {
+  _pixiJs2.default.loader.add('world', 'src/maps/world.json').load(cb);
+}
+
+},{"pixi-tiled":139,"pixi.js":112}],133:[function(require,module,exports){
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
 var _renderer = require('./renderer');
 
 var _renderer2 = _interopRequireDefault(_renderer);
 
+var _loader = require('./loader');
+
 var _game = require('./game');
 
-document.body.appendChild(_renderer2.default.view);
-(0, _game.start)();
+document.getElementById('game').appendChild(_renderer2.default.view);
 
-},{"./game":130,"./renderer":135}],133:[function(require,module,exports){
+(0, _loader.load)(function (loader, resources) {
+  (0, _game.start)(resources);
+});
+
+},{"./game":130,"./loader":132,"./renderer":135}],134:[function(require,module,exports){
 Object.defineProperty(exports, '__esModule', {
   value: true
 });
@@ -26591,19 +26625,27 @@ var _keys = require('./keys');
 
 var _keys2 = _interopRequireDefault(_keys);
 
-var Monki = (function (_PIXI$Sprite) {
-  _inherits(Monki, _PIXI$Sprite);
+var _utilsAnimation = require('./utils/animation');
+
+var _utilsAnimation2 = _interopRequireDefault(_utilsAnimation);
+
+var move = new _pixiJs2.default.Point(300, 0);
+
+var Monki = (function (_PIXI$extras$TilingSprite) {
+  _inherits(Monki, _PIXI$extras$TilingSprite);
 
   function Monki() {
     _classCallCheck(this, Monki);
 
-    var texture = _pixiJs2.default.Texture.fromImage('src/textures/monki@2x.png');
-    _get(Object.getPrototypeOf(Monki.prototype), 'constructor', this).call(this, texture);
+    var texture = _pixiJs2.default.Texture.fromImage('src/textures/mario-sprite.png');
+    _get(Object.getPrototypeOf(Monki.prototype), 'constructor', this).call(this, texture, 16, 32);
 
     this.gravityForce = new _pixiJs2.default.Point(0, 0);
     this.jumpForce = new _pixiJs2.default.Point(0, 0);
     this.velocity = new _pixiJs2.default.Point(0, 0);
     this.jumped = false;
+    this.ground = [];
+    this.walkAnimation = new _utilsAnimation2.default(this, [1, 2, 0], move.x / 6);
   }
 
   /**
@@ -26627,11 +26669,18 @@ var Monki = (function (_PIXI$Sprite) {
   }, {
     key: 'applyMove',
     value: function applyMove(dt) {
-      var move = new _pixiJs2.default.Point(300, 0);
-
-      if (_keys2.default.right) this.position.x += move.x * dt;
-
-      if (_keys2.default.left) this.position.x -= move.x * dt;
+      if (_keys2.default.right) {
+        this.position.x += move.x * dt;
+        this.tileScale.x = -1;
+        this.walkAnimation.update(dt);
+      } else if (_keys2.default.left) {
+        this.position.x -= move.x * dt;
+        this.tileScale.x = 1;
+        this.walkAnimation.update(dt);
+      } else {
+        this.tilePosition.x = this.tileScale.x * this.width - this.width;
+        this.walkAnimation.reset();
+      }
     }
   }, {
     key: 'applyJump',
@@ -26664,7 +26713,7 @@ var Monki = (function (_PIXI$Sprite) {
   }, {
     key: 'applyGravity',
     value: function applyGravity(dt) {
-      var gravity = new _pixiJs2.default.Point(0, 15);
+      var gravity = new _pixiJs2.default.Point(0, 20);
       var gravityStep = new _pixiJs2.default.Point(gravity.x * dt, gravity.y * dt);
 
       this.gravityForce.x += gravityStep.x;
@@ -26704,45 +26753,12 @@ var Monki = (function (_PIXI$Sprite) {
   }]);
 
   return Monki;
-})(_pixiJs2.default.Sprite);
+})(_pixiJs2.default.extras.TilingSprite);
 
 exports.default = new Monki();
 module.exports = exports.default;
 
-},{"./keys":131,"pixi.js":112}],134:[function(require,module,exports){
-Object.defineProperty(exports, '__esModule', {
-  value: true
-});
-
-var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-var _pixiJs = require('pixi.js');
-
-var _pixiJs2 = _interopRequireDefault(_pixiJs);
-
-var Platform = (function (_PIXI$Sprite) {
-  _inherits(Platform, _PIXI$Sprite);
-
-  function Platform() {
-    _classCallCheck(this, Platform);
-
-    var texture = _pixiJs2.default.Texture.fromImage('src/textures/platform@2x.png');
-    _get(Object.getPrototypeOf(Platform.prototype), 'constructor', this).call(this, texture);
-  }
-
-  return Platform;
-})(_pixiJs2.default.Sprite);
-
-exports.default = Platform;
-module.exports = exports.default;
-
-},{"pixi.js":112}],135:[function(require,module,exports){
+},{"./keys":131,"./utils/animation":137,"pixi.js":112}],135:[function(require,module,exports){
 Object.defineProperty(exports, '__esModule', {
   value: true
 });
@@ -26755,7 +26771,7 @@ var _pixiJs2 = _interopRequireDefault(_pixiJs);
 
 var resolution = window.devicePixelRatio;
 var backgroundColor = 0xfffff;
-exports.default = _pixiJs2.default.autoDetectRenderer(500, 500, { resolution: resolution, backgroundColor: backgroundColor });
+exports.default = _pixiJs2.default.autoDetectRenderer(800, 500, { resolution: resolution, backgroundColor: backgroundColor });
 module.exports = exports.default;
 
 },{"pixi.js":112}],136:[function(require,module,exports){
@@ -26773,142 +26789,407 @@ exports.default = new _pixiJs2.default.Container();
 module.exports = exports.default;
 
 },{"pixi.js":112}],137:[function(require,module,exports){
-Object.defineProperty(exports, '__esModule', {
+Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
-var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+var Animation = (function () {
+  function Animation(sprite, frames, fps) {
+    _classCallCheck(this, Animation);
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-var _pixiJs = require('pixi.js');
-
-var _pixiJs2 = _interopRequireDefault(_pixiJs);
-
-var _platform = require('./platform');
-
-var _platform2 = _interopRequireDefault(_platform);
-
-/**
- * Tile map of the game.
- * y: 0 -> x
- * y: 1 -> 10 * y + x
- * @type {number[]}
- */
-
-var map = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-
-var TileMap = (function (_PIXI$Container) {
-  _inherits(TileMap, _PIXI$Container);
-
-  function TileMap(map) {
-    _classCallCheck(this, TileMap);
-
-    _get(Object.getPrototypeOf(TileMap.prototype), 'constructor', this).call(this);
-
-    this.map = map;
-
-    this.tileSize = {
-      width: 50,
-      height: 50
-    };
-
-    this.tileLength = {
-      width: 10,
-      height: 10
-    };
-
-    this.map.forEach(this.addTile.bind(this));
+    this.sprite = sprite;
+    this.frames = frames;
+    this.frameTime = 1 / fps;
+    this.reset();
   }
 
-  /**
-   * Add tile.
-   *
-   * @param {number} val
-   * @param {number} index
-   */
+  _createClass(Animation, [{
+    key: "update",
+    value: function update(dt) {
+      this.duration += dt;
 
-  _createClass(TileMap, [{
-    key: 'addTile',
-    value: function addTile(val, index) {
-      if (val === 0) return;
+      if (this.duration >= this.frameTime) {
+        if (this.frames.length > this.currentFrame + 1) this.currentFrame++;else this.currentFrame = 0;
 
-      var platform = new _platform2.default();
-      platform.position.x = this.tileSize.width * (index % this.tileLength.width);
-      platform.position.y = this.tileSize.height * Math.floor(index / this.tileLength.width);
-      this.addChild(platform);
+        this.duration = 0;
+
+        this.sprite.tilePosition.x = this.frames[this.currentFrame] * this.sprite.width;
+      }
     }
-
-    /**
-     * Return tile coords for a specific position.
-     *
-     * @param {PIXI.Point} position
-     * @returns {PIXI.Point}
-     */
-
   }, {
-    key: 'getTileCoordForPosition',
-    value: function getTileCoordForPosition(position) {
-      var x = Math.floor(position.x / this.tileSize.width);
-      var y = Math.floor(position.y / this.tileSize.height);
-      return new _pixiJs2.default.Point(x, y);
-    }
-
-    /**
-     * Test if there is a tile at a specific coordinates.
-     *
-     * @param {PIXI.Point} tileCoords
-     * @returns {boolean}
-     */
-
-  }, {
-    key: 'isTileAtCoords',
-    value: function isTileAtCoords(tileCoords) {
-      return !!this.map[this.tileLength.width * tileCoords.y + tileCoords.x];
-    }
-
-    /**
-     * Return tile rect from tile coordinates.
-     *
-     * @param {PIXI.Point} position
-     * @returns {PIXI.Rectanble}
-     */
-
-  }, {
-    key: 'getTileRectFromTileCoords',
-    value: function getTileRectFromTileCoords(tileCoords) {
-      var origin = new _pixiJs2.default.Point(tileCoords.x * this.tileSize.width, tileCoords.y * this.tileSize.height);
-      return new _pixiJs2.default.Rectangle(origin.x, origin.y, this.tileSize.width, this.tileSize.height);
-    }
-
-    /**
-     * Return the colliding tile rect from a position.
-     *
-     * @param {PIXI.Point} position
-     * @returns {PIXI.Rectangle|null}
-     */
-
-  }, {
-    key: 'getCollidingTileRect',
-    value: function getCollidingTileRect(position) {
-      var tileCoords = this.getTileCoordForPosition(position);
-
-      if (!this.isTileAtCoords(tileCoords)) return null;
-
-      return this.getTileRectFromTileCoords(tileCoords);
+    key: "reset",
+    value: function reset() {
+      this.currentFrame = 0;
+      this.duration = 0;
     }
   }]);
 
-  return TileMap;
-})(_pixiJs2.default.Container);
+  return Animation;
+})();
 
-exports.default = new TileMap(map);
+exports.default = Animation;
 module.exports = exports.default;
 
-},{"./platform":134,"pixi.js":112}]},{},[132]);
+},{}],138:[function(require,module,exports){
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var TileMatcher = (function () {
+  /**
+   * Create a new tile matcher.
+   *
+   * @param {object} world
+   */
+
+  function TileMatcher(world) {
+    _classCallCheck(this, TileMatcher);
+
+    this.world = world;
+  }
+
+  /**
+   * Get tile at a specific position.
+   *
+   * @param {Point} position
+   * @param {object} options
+   * @param {Layer} options.layer
+   */
+
+  _createClass(TileMatcher, [{
+    key: "getTileAtPosition",
+    value: function getTileAtPosition(position) {
+      var options = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
+
+      var container = options.layer ? this.world.tiledMap.getLayerByName(options.layer) : this.world.tiledMap;
+
+      var x = Math.floor(position.x / this.world.data.tilewidth);
+      var y = Math.floor(position.y / this.world.data.tileheight);
+      return container.tiles[y * this.world.data.width + x];
+    }
+  }]);
+
+  return TileMatcher;
+})();
+
+exports.default = TileMatcher;
+module.exports = exports.default;
+
+},{}],139:[function(require,module,exports){
+var tiledMapParser = require('./src/tiledMapParser');
+
+// attach the parser to the global pixi scope
+PIXI.loaders.Loader.addPixiMiddleware(tiledMapParser);
+PIXI.loader.use(tiledMapParser());
+
+module.exports = {
+
+    tiledMapParser : tiledMapParser,
+    Tileset : require('./src/Tileset'),
+    TiledMap : require('./src/TiledMap'),
+    Layer : require('./src/Layer'),
+    Tile : require('./src/Tile')
+};
+},{"./src/Layer":140,"./src/Tile":141,"./src/TiledMap":142,"./src/Tileset":143,"./src/tiledMapParser":144}],140:[function(require,module,exports){
+/**
+ * Layer
+ * @constructor
+ */
+var Layer = function(name, alpha)
+{
+    PIXI.Container.call(this);
+
+    this.name = name;
+
+    this.alpha = alpha;
+
+    this.tiles = [];
+};
+
+Layer.prototype = Object.create(PIXI.Container.prototype);
+
+Layer.prototype.getTilesByGid = function(gids)
+{
+    if(!Array.isArray(gids)) {
+        gids = [gids];
+    }
+
+    return this.children.filter(function(tile) {
+        return gids.indexOf(tile.gid) > -1;
+    });
+};
+
+module.exports = Layer;
+
+},{}],141:[function(require,module,exports){
+/**
+ * Tile
+ * @constructor
+ */
+var Tile = function(gid, texture)
+{
+    PIXI.Sprite.call(this, texture);
+
+    this.gid = gid;
+};
+
+Tile.prototype = Object.create(PIXI.Sprite.prototype);
+
+module.exports = Tile;
+},{}],142:[function(require,module,exports){
+/**
+ * Map
+ * @constructor
+ */
+var TiledMap = function()
+{
+    PIXI.Container.call(this);
+
+    this.layers = {};
+
+    this.tilesets = [];
+};
+
+TiledMap.prototype = Object.create(PIXI.Container.prototype);
+
+TiledMap.prototype.getLayerByName = function(name)
+{
+    return this.layers[name];
+};
+
+TiledMap.prototype.getTilesByGid = function(gids)
+{
+    var tiles = [];
+
+    this.children.forEach(function(layer) {
+        tiles = tiles.concat(layer.getTilesByGid(gids));
+    });
+
+    return tiles;
+};
+
+module.exports = TiledMap;
+},{}],143:[function(require,module,exports){
+/**
+ * Tileset
+ * @constructor
+ */
+var Tileset = function (data, texture) {
+
+    this.baseTexture = texture;
+    this.textures = [];
+
+    this.name = data.name;
+    this.firstGID = data.firstgid;
+    this.imageHeight = data.imageheight;
+    this.imageWidth = data.imagewidth;
+    this.tileHeight = data.tileheight;
+    this.tileWidth = data.tilewidth;
+    this.margin = data.margin;
+    this.spacing = data.spacing;
+    // @todo data.properties?
+
+    var x, y;
+
+    // create textures (invalid until baseTexture loaded)
+    for (y = this.margin; y < this.imageHeight; y += this.tileHeight + this.spacing) {
+
+        for (x = this.margin; x < this.imageWidth; x += this.tileWidth + this.spacing) {
+
+            this.textures.push(
+                new PIXI.Texture(this.baseTexture)
+            );
+        }
+    }
+
+    this.tiles = {};
+};
+
+/**
+ * update the frames of the textures
+ */
+Tileset.prototype.updateTextures = function () {
+
+    var texture, frame, x, y, i = 0;
+
+    for (y = this.margin; y < this.imageHeight; y += this.tileHeight + this.spacing) {
+
+        for (x = this.margin; x < this.imageWidth; x += this.tileWidth + this.spacing) {
+
+            texture = this.textures[i];
+            frame = texture.frame;
+
+            frame.width = this.tileWidth;
+            frame.height = this.tileHeight;
+            frame.x = x;
+            frame.y = y;
+
+            // force UV update
+            texture.frame = frame;
+
+            i++;
+        }
+    }
+};
+
+module.exports = Tileset;
+
+},{}],144:[function(require,module,exports){
+var TiledMap = require('./TiledMap');
+var Tileset = require('./Tileset');
+var Layer = require('./Layer');
+var Tile = require('./Tile');
+var path = require('path');
+
+module.exports = function() {
+
+    /**
+     * find the texture for a given tile from the array of tilesets
+     */
+    function findTexture(gid, tilesets)
+    {
+        var tileset, i, ix;
+
+        // go backwards through the tilesets
+        // find the first tileset with the firstGID lower that the one we want
+        for ( i = tilesets.length - 1; i >= 0; i-- ) {
+            tileset = tilesets[i];
+            if(tileset.firstGID <= gid) { break; }
+        }
+
+        // calculate the internal position within the tileset
+        ix = gid - tileset.firstGID;
+
+        return tileset.textures[ix];
+    }
+
+    return function (resource, next) {
+
+        // early exit if it is not the right type
+        if (!resource.data || !resource.isJson || !resource.data.layers || !resource.data.tilesets) {
+            return next();
+        }
+
+        // tileset image paths are relative so we need the root path
+        var root = path.dirname(resource.url);
+
+        var data = resource.data;
+
+        var map = new TiledMap(data);
+
+        var toLoad = 0;
+
+        data.tilesets.forEach(function (tilesetData) {
+
+            toLoad++;
+
+            var src = path.join(root, tilesetData.image);
+
+            var baseTexture = PIXI.BaseTexture.fromImage(src);
+
+            var tileset = new Tileset(tilesetData, baseTexture);
+
+            // update the textures once the base texture has loaded
+            baseTexture.once('loaded', function () {
+                toLoad--;
+                tileset.updateTextures();
+                if (toLoad <= 0) {
+                    next();
+                }
+            });
+
+            map.tilesets.push(tileset);
+
+            var id, i, p, tile, shapeData, shapes, shape, points;
+
+            for(id in tilesetData.tiles) {
+
+                tile = tilesetData.tiles[id];
+
+                for(i = 0; i < tile.objectgroup.objects.length; i++) {
+
+                    shapeData = tile.objectgroup.objects[0];
+
+                    shapes = [];
+
+                    if (shapeData.polygon) {
+
+                        points = [];
+
+                        for (p = 0; p < shapeData.polygon.length; p++) {
+                            points.push(shapeData.polygon[p].x);
+                            points.push(shapeData.polygon[p].y);
+                        }
+
+                        shape = new PIXI.Polygon(points);
+
+                    } else if (shapeData.ellipse) {
+
+                        shape = new PIXI.Circle(shapeData.x, shapeData.y, shapeData.height / 2);
+
+                    } else {
+
+                        shape = new PIXI.Rectangle(shapeData.x, shapeData.y, shapeData.width, shapeData.height);
+
+                    }
+
+                    shapes.push(shape);
+                }
+
+                // object data id is 1 lower than gid for some reason
+                tileset.tiles[+id + 1] = {
+                    collision: shapes
+                };
+            }
+        });
+
+        data.layers.forEach(function (layerData) {
+
+            var layer = new Layer(layerData.name, layerData.opacity);
+
+            // generate tiles for the layer
+            var x, y, i, gid, texture, tile;
+
+            for ( y = 0; y < layerData.height; y++ ) {
+
+                for ( x = 0; x < layerData.width; x++ ) {
+
+                    i = x + (y * layerData.width);
+
+                    gid = layerData.data[i];
+
+                    // 0 is a gap
+                    if ( gid !== 0 ) {
+
+                        texture = findTexture(gid, map.tilesets);
+
+                        tile = new Tile(gid, texture);
+
+                        tile.x = x * data.tilewidth;
+                        tile.y = y * data.tileheight;
+
+                        layer.tiles[i] = tile;
+                        layer.addChild(tile);
+                    }
+                }
+            }
+
+            // add to map
+            map.layers[layer.name] = layer;
+
+            map.addChild(layer);
+        });
+
+        resource.tiledMap = map;
+    };
+};
+
+},{"./Layer":140,"./Tile":141,"./TiledMap":142,"./Tileset":143,"path":1}]},{},[133]);
