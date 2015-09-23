@@ -1,20 +1,21 @@
 import PIXI from 'pixi.js';
 import keys from './keys';
-import Animation from './utils/animation';
-
-const move = new PIXI.Point(300, 0);
+import Animator from './utils/animator';
+import Force from './utils/force';
 
 class Monki extends PIXI.extras.TilingSprite {
   constructor() {
     const texture = PIXI.Texture.fromImage('src/textures/mario-sprite.png');
     super(texture, 16, 32);
 
-    this.gravityForce = new PIXI.Point(0, 0);
-    this.jumpForce = new PIXI.Point(0, 0);
-    this.velocity = new PIXI.Point(0, 0);
-    this.jumped = false;
+    this.gravity = new Force(this, 0, 20, {limit: new PIXI.Point(0, 20)});
+    this.jump = new Force(this, 0, -50, {limit: new PIXI.Point(0, -6)});
+    this.velocity = new Force(this, 100, 0, {limit: new PIXI.Point(4)});
+
+    this.animator = new Animator(this);
+    this.animator.addAnimation('run', [1, 2, 0], 0);
+
     this.ground = [];
-    this.walkAnimation = new Animation(this, [1, 2, 0], move.x / 6);
   }
 
   /**
@@ -24,70 +25,48 @@ class Monki extends PIXI.extras.TilingSprite {
    */
 
   update(dt) {
-    // Jump
-    this.applyJump(dt);
+    this.animator.update(dt);
+    this.gravity.update(dt);
+    this.jump.update(dt);
+    this.velocity.update(dt);
 
-    // Gravity
-    this.applyGravity(dt);
+    this.animator.animations.run.fps = Math.abs(this.velocity.value.x * 4);
+
+    // Jump
+    if (keys.space && (this.jump.exerting || this.ground))
+      this.jump.exerting = true;
+    else
+      this.jump.exerting = false;
 
     // Move
-    this.applyMove(dt);
+    this.applyMove();
   }
 
-  applyMove(dt) {
+  applyMove() {
     if (keys.right) {
-      this.position.x += move.x * dt;
+      if (this.velocity.value.x < 0)
+        this.velocity.value.x = 0;
+
+      this.velocity.power.x = Math.abs(this.velocity.power.x);
+      this.velocity.limit.x = Math.abs(this.velocity.limit.x);
+      this.velocity.exerting = true;
       this.tileScale.x = -1;
-      this.walkAnimation.update(dt);
+      this.animator.setCurrentAnimation('run');
     } else if (keys.left) {
-      this.position.x -= move.x * dt;
+      if (this.velocity.value.x > 0)
+        this.velocity.value.x = 0;
+
+      this.velocity.power.x = -Math.abs(this.velocity.power.x);
+      this.velocity.limit.x = -Math.abs(this.velocity.limit.x);
+      this.velocity.exerting = true;
       this.tileScale.x = 1;
-      this.walkAnimation.update(dt);
+      this.animator.setCurrentAnimation('run');
     } else {
+      this.velocity.exerting = false;
+      this.velocity.reset();
+      this.animator.setCurrentAnimation(null);
       this.tilePosition.x = this.tileScale.x * this.width - this.width;
-      this.walkAnimation.reset();
     }
-  }
-
-  applyJump(dt) {
-    if (keys.space && !this.jumped) {
-      const jump = new PIXI.Point(0, -50);
-      const jumpStep = new PIXI.Point(jump.x * dt, jump.y * dt);
-
-      this.jumpForce.x += jumpStep.x;
-      this.jumpForce.y += jumpStep.y;
-    } else {
-      this.jumped = true;
-    }
-
-    if (this.jumpForce.y < -6) {
-      this.jumpForce.y = -6;
-      this.jumped = true;
-    }
-
-    this.position.x += this.jumpForce.x;
-    this.position.y += this.jumpForce.y;
-  }
-
-  /**
-   * Apply gravity.
-   *
-   * @param {number} dt
-   */
-
-  applyGravity(dt) {
-    const gravity = new PIXI.Point(0, 20);
-    const gravityStep = new PIXI.Point(gravity.x * dt, gravity.y * dt);
-
-    this.gravityForce.x += gravityStep.x;
-    this.gravityForce.y += gravityStep.y;
-
-    if (this.gravityForce.y > 20) {
-      this.gravityForce.y = 20;
-    }
-
-    this.position.x += this.gravityForce.x;
-    this.position.y += this.gravityForce.y;
   }
 
   /**
@@ -100,13 +79,8 @@ class Monki extends PIXI.extras.TilingSprite {
     this.ground = rect;
 
     if (this.ground) {
-      this.jumped = false;
-
-      this.gravityForce.x = 0;
-      this.gravityForce.y = 0;
-
-      this.jumpForce.x = 0;
-      this.jumpForce.y = 0;
+      this.gravity.reset();
+      this.jump.reset();
 
       this.position.y = this.ground.y - this.height;
     }

@@ -26528,7 +26528,7 @@ function start(_ref) {
   requestAnimationFrame(update);
 }
 
-},{"./monki":134,"./renderer":135,"./stage":136,"./utils/tile-matcher":138,"pixi.js":112}],131:[function(require,module,exports){
+},{"./monki":134,"./renderer":135,"./stage":136,"./utils/tile-matcher":140,"pixi.js":112}],131:[function(require,module,exports){
 Object.defineProperty(exports, '__esModule', {
   value: true
 });
@@ -26585,7 +26585,7 @@ function load(cb) {
   _pixiJs2.default.loader.add('world', 'src/maps/world.json').load(cb);
 }
 
-},{"pixi-tiled":139,"pixi.js":112}],133:[function(require,module,exports){
+},{"pixi-tiled":141,"pixi.js":112}],133:[function(require,module,exports){
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
 var _renderer = require('./renderer');
@@ -26625,11 +26625,13 @@ var _keys = require('./keys');
 
 var _keys2 = _interopRequireDefault(_keys);
 
-var _utilsAnimation = require('./utils/animation');
+var _utilsAnimator = require('./utils/animator');
 
-var _utilsAnimation2 = _interopRequireDefault(_utilsAnimation);
+var _utilsAnimator2 = _interopRequireDefault(_utilsAnimator);
 
-var move = new _pixiJs2.default.Point(300, 0);
+var _utilsForce = require('./utils/force');
+
+var _utilsForce2 = _interopRequireDefault(_utilsForce);
 
 var Monki = (function (_PIXI$extras$TilingSprite) {
   _inherits(Monki, _PIXI$extras$TilingSprite);
@@ -26640,12 +26642,14 @@ var Monki = (function (_PIXI$extras$TilingSprite) {
     var texture = _pixiJs2.default.Texture.fromImage('src/textures/mario-sprite.png');
     _get(Object.getPrototypeOf(Monki.prototype), 'constructor', this).call(this, texture, 16, 32);
 
-    this.gravityForce = new _pixiJs2.default.Point(0, 0);
-    this.jumpForce = new _pixiJs2.default.Point(0, 0);
-    this.velocity = new _pixiJs2.default.Point(0, 0);
-    this.jumped = false;
+    this.gravity = new _utilsForce2.default(this, 0, 20, { limit: new _pixiJs2.default.Point(0, 20) });
+    this.jump = new _utilsForce2.default(this, 0, -50, { limit: new _pixiJs2.default.Point(0, -6) });
+    this.velocity = new _utilsForce2.default(this, 100, 0, { limit: new _pixiJs2.default.Point(4) });
+
+    this.animator = new _utilsAnimator2.default(this);
+    this.animator.addAnimation('run', [1, 2, 0], 0);
+
     this.ground = [];
-    this.walkAnimation = new _utilsAnimation2.default(this, [1, 2, 0], move.x / 6);
   }
 
   /**
@@ -26657,74 +26661,44 @@ var Monki = (function (_PIXI$extras$TilingSprite) {
   _createClass(Monki, [{
     key: 'update',
     value: function update(dt) {
-      // Jump
-      this.applyJump(dt);
+      this.animator.update(dt);
+      this.gravity.update(dt);
+      this.jump.update(dt);
+      this.velocity.update(dt);
 
-      // Gravity
-      this.applyGravity(dt);
+      this.animator.animations.run.fps = Math.abs(this.velocity.value.x * 4);
+
+      // Jump
+      if (_keys2.default.space && (this.jump.exerting || this.ground)) this.jump.exerting = true;else this.jump.exerting = false;
 
       // Move
-      this.applyMove(dt);
+      this.applyMove();
     }
   }, {
     key: 'applyMove',
-    value: function applyMove(dt) {
+    value: function applyMove() {
       if (_keys2.default.right) {
-        this.position.x += move.x * dt;
+        if (this.velocity.value.x < 0) this.velocity.value.x = 0;
+
+        this.velocity.power.x = Math.abs(this.velocity.power.x);
+        this.velocity.limit.x = Math.abs(this.velocity.limit.x);
+        this.velocity.exerting = true;
         this.tileScale.x = -1;
-        this.walkAnimation.update(dt);
+        this.animator.setCurrentAnimation('run');
       } else if (_keys2.default.left) {
-        this.position.x -= move.x * dt;
+        if (this.velocity.value.x > 0) this.velocity.value.x = 0;
+
+        this.velocity.power.x = -Math.abs(this.velocity.power.x);
+        this.velocity.limit.x = -Math.abs(this.velocity.limit.x);
+        this.velocity.exerting = true;
         this.tileScale.x = 1;
-        this.walkAnimation.update(dt);
+        this.animator.setCurrentAnimation('run');
       } else {
+        this.velocity.exerting = false;
+        this.velocity.reset();
+        this.animator.setCurrentAnimation(null);
         this.tilePosition.x = this.tileScale.x * this.width - this.width;
-        this.walkAnimation.reset();
       }
-    }
-  }, {
-    key: 'applyJump',
-    value: function applyJump(dt) {
-      if (_keys2.default.space && !this.jumped) {
-        var jump = new _pixiJs2.default.Point(0, -50);
-        var jumpStep = new _pixiJs2.default.Point(jump.x * dt, jump.y * dt);
-
-        this.jumpForce.x += jumpStep.x;
-        this.jumpForce.y += jumpStep.y;
-      } else {
-        this.jumped = true;
-      }
-
-      if (this.jumpForce.y < -6) {
-        this.jumpForce.y = -6;
-        this.jumped = true;
-      }
-
-      this.position.x += this.jumpForce.x;
-      this.position.y += this.jumpForce.y;
-    }
-
-    /**
-     * Apply gravity.
-     *
-     * @param {number} dt
-     */
-
-  }, {
-    key: 'applyGravity',
-    value: function applyGravity(dt) {
-      var gravity = new _pixiJs2.default.Point(0, 20);
-      var gravityStep = new _pixiJs2.default.Point(gravity.x * dt, gravity.y * dt);
-
-      this.gravityForce.x += gravityStep.x;
-      this.gravityForce.y += gravityStep.y;
-
-      if (this.gravityForce.y > 20) {
-        this.gravityForce.y = 20;
-      }
-
-      this.position.x += this.gravityForce.x;
-      this.position.y += this.gravityForce.y;
     }
 
     /**
@@ -26739,13 +26713,8 @@ var Monki = (function (_PIXI$extras$TilingSprite) {
       this.ground = rect;
 
       if (this.ground) {
-        this.jumped = false;
-
-        this.gravityForce.x = 0;
-        this.gravityForce.y = 0;
-
-        this.jumpForce.x = 0;
-        this.jumpForce.y = 0;
+        this.gravity.reset();
+        this.jump.reset();
 
         this.position.y = this.ground.y - this.height;
       }
@@ -26758,7 +26727,7 @@ var Monki = (function (_PIXI$extras$TilingSprite) {
 exports.default = new Monki();
 module.exports = exports.default;
 
-},{"./keys":131,"./utils/animation":137,"pixi.js":112}],135:[function(require,module,exports){
+},{"./keys":131,"./utils/animator":138,"./utils/force":139,"pixi.js":112}],135:[function(require,module,exports){
 Object.defineProperty(exports, '__esModule', {
   value: true
 });
@@ -26798,28 +26767,47 @@ var _createClass = (function () { function defineProperties(target, props) { for
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var Animation = (function () {
+
+  /**
+   * Create a new animation.
+   *
+   * @param {PIXI.extras.TilingSprite} sprite
+   * @param {number[]} frames
+   * @param {number} fps
+   */
+
   function Animation(sprite, frames, fps) {
     _classCallCheck(this, Animation);
 
     this.sprite = sprite;
     this.frames = frames;
-    this.frameTime = 1 / fps;
+    this.fps = fps;
     this.reset();
   }
+
+  /**
+   * Update animation.
+   *
+   * @param {number} dt Delta time
+   */
 
   _createClass(Animation, [{
     key: "update",
     value: function update(dt) {
       this.duration += dt;
 
-      if (this.duration >= this.frameTime) {
+      if (this.duration >= 1 / this.fps) {
         if (this.frames.length > this.currentFrame + 1) this.currentFrame++;else this.currentFrame = 0;
 
         this.duration = 0;
-
         this.sprite.tilePosition.x = this.frames[this.currentFrame] * this.sprite.width;
       }
     }
+
+    /**
+     * Reset animation.
+     */
+
   }, {
     key: "reset",
     value: function reset() {
@@ -26835,6 +26823,178 @@ exports.default = Animation;
 module.exports = exports.default;
 
 },{}],138:[function(require,module,exports){
+Object.defineProperty(exports, '__esModule', {
+  value: true
+});
+
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+
+var _animation = require('./animation');
+
+var _animation2 = _interopRequireDefault(_animation);
+
+var Animator = (function () {
+
+  /**
+   * Create a new animator.
+   *
+   * @param {PIXI.extras.TilingSprite} sprite
+   */
+
+  function Animator(sprite) {
+    _classCallCheck(this, Animator);
+
+    this.sprite = sprite;
+    this.animations = {};
+    this.currentAnimation = null;
+  }
+
+  /**
+   * Add a new animation for this sprite.
+   *
+   * @param {string} name
+   * @param {number[]} frames
+   * @param {number} fps
+   */
+
+  _createClass(Animator, [{
+    key: 'addAnimation',
+    value: function addAnimation(name, frames, fps) {
+      this.animations[name] = new _animation2.default(this.sprite, frames, fps);
+    }
+
+    /**
+     * Set the current animation.
+     *
+     * @param {string} name
+     */
+
+  }, {
+    key: 'setCurrentAnimation',
+    value: function setCurrentAnimation(name) {
+      if (this.currentAnimation && this.currentAnimation !== this.animations[name]) this.currentAnimation.reset();
+
+      this.currentAnimation = name ? this.animations[name] : null;
+    }
+
+    /**
+     * Animate sprite.
+     *
+     * @param {number} dt Delta time
+     */
+
+  }, {
+    key: 'update',
+    value: function update(dt) {
+      if (this.currentAnimation) this.currentAnimation.update(dt);
+    }
+  }]);
+
+  return Animator;
+})();
+
+exports.default = Animator;
+module.exports = exports.default;
+
+},{"./animation":137}],139:[function(require,module,exports){
+Object.defineProperty(exports, '__esModule', {
+  value: true
+});
+
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+
+var _pixiJs = require('pixi.js');
+
+var _pixiJs2 = _interopRequireDefault(_pixiJs);
+
+var Force = (function () {
+  /**
+   * Create a new force.
+   *
+   * @param {PIXI.DisplayObject} clip
+   * @param {number} x
+   * @param {number} y
+   * @param {object} options
+   * @param {PIXI.Point} options.limit
+   */
+
+  function Force(clip, x, y) {
+    var _ref = arguments.length <= 3 || arguments[3] === undefined ? {} : arguments[3];
+
+    var _ref$limit = _ref.limit;
+    var limit = _ref$limit === undefined ? new _pixiJs2.default.Point(0, 0) : _ref$limit;
+
+    _classCallCheck(this, Force);
+
+    this.clip = clip;
+    this.power = new _pixiJs2.default.Point(x, y);
+    this.value = new _pixiJs2.default.Point(0, 0);
+    this.limit = limit;
+    this.exerting = true;
+  }
+
+  /**
+   * Apply force.
+   *
+   * @param {number} dt
+   */
+
+  _createClass(Force, [{
+    key: 'update',
+    value: function update(dt) {
+      this.exert(dt);
+
+      this.clip.x += this.value.x;
+      this.clip.y += this.value.y;
+    }
+  }, {
+    key: 'exert',
+    value: function exert(dt) {
+      if (!this.exerting) return;
+
+      var step = new _pixiJs2.default.Point(this.power.x * dt, this.power.y * dt);
+
+      this.value.x += step.x;
+      this.value.y += step.y;
+
+      if (this.limit.y > 0 && this.value.y > this.limit.y || this.limit.y < 0 && this.value.y < this.limit.y) {
+        this.limited = true;
+        this.value.y = this.limit.y;
+      }
+
+      if (this.limit.x > 0 && this.value.x > this.limit.x || this.limit.x < 0 && this.value.x < this.limit.x) {
+        this.limited = true;
+        this.value.x = this.limit.x;
+      }
+    }
+
+    /**
+     * Reset force value.
+     */
+
+  }, {
+    key: 'reset',
+    value: function reset() {
+      this.value.x = this.value.y = 0;
+      this.limited = false;
+    }
+  }]);
+
+  return Force;
+})();
+
+exports.default = Force;
+module.exports = exports.default;
+
+},{"pixi.js":112}],140:[function(require,module,exports){
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
@@ -26883,7 +27043,7 @@ var TileMatcher = (function () {
 exports.default = TileMatcher;
 module.exports = exports.default;
 
-},{}],139:[function(require,module,exports){
+},{}],141:[function(require,module,exports){
 var tiledMapParser = require('./src/tiledMapParser');
 
 // attach the parser to the global pixi scope
@@ -26898,7 +27058,7 @@ module.exports = {
     Layer : require('./src/Layer'),
     Tile : require('./src/Tile')
 };
-},{"./src/Layer":140,"./src/Tile":141,"./src/TiledMap":142,"./src/Tileset":143,"./src/tiledMapParser":144}],140:[function(require,module,exports){
+},{"./src/Layer":142,"./src/Tile":143,"./src/TiledMap":144,"./src/Tileset":145,"./src/tiledMapParser":146}],142:[function(require,module,exports){
 /**
  * Layer
  * @constructor
@@ -26929,7 +27089,7 @@ Layer.prototype.getTilesByGid = function(gids)
 
 module.exports = Layer;
 
-},{}],141:[function(require,module,exports){
+},{}],143:[function(require,module,exports){
 /**
  * Tile
  * @constructor
@@ -26944,7 +27104,7 @@ var Tile = function(gid, texture)
 Tile.prototype = Object.create(PIXI.Sprite.prototype);
 
 module.exports = Tile;
-},{}],142:[function(require,module,exports){
+},{}],144:[function(require,module,exports){
 /**
  * Map
  * @constructor
@@ -26977,7 +27137,7 @@ TiledMap.prototype.getTilesByGid = function(gids)
 };
 
 module.exports = TiledMap;
-},{}],143:[function(require,module,exports){
+},{}],145:[function(require,module,exports){
 /**
  * Tileset
  * @constructor
@@ -27042,7 +27202,7 @@ Tileset.prototype.updateTextures = function () {
 
 module.exports = Tileset;
 
-},{}],144:[function(require,module,exports){
+},{}],146:[function(require,module,exports){
 var TiledMap = require('./TiledMap');
 var Tileset = require('./Tileset');
 var Layer = require('./Layer');
@@ -27192,4 +27352,4 @@ module.exports = function() {
     };
 };
 
-},{"./Layer":140,"./Tile":141,"./TiledMap":142,"./Tileset":143,"path":1}]},{},[133]);
+},{"./Layer":142,"./Tile":143,"./TiledMap":144,"./Tileset":145,"path":1}]},{},[133]);
