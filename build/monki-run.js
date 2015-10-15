@@ -26467,105 +26467,97 @@ if (!global.cancelAnimationFrame) {
 Object.defineProperty(exports, '__esModule', {
   value: true
 });
-exports.start = start;
+
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
-var _pixiJs = require('pixi.js');
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
-var _pixiJs2 = _interopRequireDefault(_pixiJs);
+var _spritesStage = require('./sprites/stage');
 
-var _monki = require('./monki');
+var _spritesStage2 = _interopRequireDefault(_spritesStage);
 
-var _monki2 = _interopRequireDefault(_monki);
+var _spritesHero = require('./sprites/hero');
 
-var _renderer = require('./renderer');
-
-var _renderer2 = _interopRequireDefault(_renderer);
-
-var _stage = require('./stage');
-
-var _stage2 = _interopRequireDefault(_stage);
+var _spritesHero2 = _interopRequireDefault(_spritesHero);
 
 var _utilsTileMatcher = require('./utils/tile-matcher');
 
 var _utilsTileMatcher2 = _interopRequireDefault(_utilsTileMatcher);
 
-/**
- * Start the game.
- */
+var Game = (function () {
 
-function start(_ref) {
-  var world = _ref.world;
+  /**
+   * Create a new game.
+   *
+   * @param {object} resources
+   */
 
-  var tileMatcher = new _utilsTileMatcher2.default(world);
+  function Game(_ref) {
+    var world = _ref.resources.world;
+    var renderer = _ref.renderer;
 
-  _monki2.default.position.x = 20;
+    _classCallCheck(this, Game);
 
-  _stage2.default.addChild(world.tiledMap);
-  _stage2.default.addChild(_monki2.default);
+    this.loop = this.loop.bind(this);
 
-  function update() {
-    requestAnimationFrame(update);
+    this.renderer = renderer;
+    this.tileMatcher = new _utilsTileMatcher2.default(world);
 
-    // Compute delta time
-    var dt = lastCalledTime ? (Date.now() - lastCalledTime) / 1000 : 0;
-
-    // Update monki
-    _monki2.default.update(dt);
-
-    var monkiBottomRight = new _pixiJs2.default.Point(_monki2.default.position.x + _monki2.default.width, _monki2.default.position.y + _monki2.default.height);
-    var monkiBottomLeft = new _pixiJs2.default.Point(_monki2.default.position.x, _monki2.default.position.y + _monki2.default.height);
-    _monki2.default.setGround(tileMatcher.getTileAtPosition(monkiBottomRight, { layer: 'Platforms' }) || tileMatcher.getTileAtPosition(monkiBottomLeft, { layer: 'Platforms' }));
-
-    // Render container
-    _renderer2.default.render(_stage2.default);
-
-    lastCalledTime = Date.now();
+    this.stage = new _spritesStage2.default();
+    this.hero = new _spritesHero2.default({ tileMatcher: this.tileMatcher });
+    this.stage.addChild(world.tiledMap);
+    this.stage.addChild(this.hero);
   }
 
-  var lastCalledTime = undefined;
-  requestAnimationFrame(update);
-}
+  /**
+   * Start game.
+   */
 
-},{"./monki":134,"./renderer":135,"./stage":136,"./utils/tile-matcher":140,"pixi.js":112}],131:[function(require,module,exports){
-Object.defineProperty(exports, '__esModule', {
-  value: true
-});
-var states = {};
-var keyMap = {
-  8: 'backspace',
-  9: 'tab',
-  13: 'enter',
-  17: 'ctrl',
-  18: 'alt',
-  20: 'caps',
-  27: 'esc',
-  37: 'left',
-  32: 'space',
-  38: 'up',
-  39: 'right',
-  40: 'down',
-  45: 'insert',
-  46: 'delete'
-};
+  _createClass(Game, [{
+    key: 'start',
+    value: function start() {
+      requestAnimationFrame(this.loop);
+    }
 
-function changeState(state, e) {
-  var mapped = keyMap[e.keyCode] || String.fromCharCode(e.keyCode);
-  states[mapped.toLowerCase()] = state;
-}
+    /**
+     * Loop of the game.
+     */
 
-window.addEventListener('keydown', changeState.bind(this, true));
-window.addEventListener('keyup', changeState.bind(this, false));
+  }, {
+    key: 'loop',
+    value: function loop() {
+      var dt = this.lastLoopTime ? (Date.now() - this.lastLoopTime) / 1000 : 0;
+      this.update(dt);
+      this.lastLoopTime = Date.now();
+      requestAnimationFrame(this.loop);
+    }
 
-exports.default = states;
+    /**
+     * Called at each requestAnimationFrame.
+     *
+     * @param {number} dt
+     */
+
+  }, {
+    key: 'update',
+    value: function update(dt) {
+      this.hero.update(dt);
+      this.renderer.render(this.stage);
+    }
+  }]);
+
+  return Game;
+})();
+
+exports.default = Game;
 module.exports = exports.default;
 
-},{}],132:[function(require,module,exports){
+},{"./sprites/hero":134,"./sprites/stage":135,"./utils/tile-matcher":141}],131:[function(require,module,exports){
 Object.defineProperty(exports, '__esModule', {
   value: true
 });
-exports.load = load;
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
@@ -26585,7 +26577,10 @@ function load(cb) {
   _pixiJs2.default.loader.add('world', 'src/maps/world.json').load(cb);
 }
 
-},{"pixi-tiled":141,"pixi.js":112}],133:[function(require,module,exports){
+exports.default = { load: load };
+module.exports = exports.default;
+
+},{"pixi-tiled":142,"pixi.js":112}],132:[function(require,module,exports){
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
 var _renderer = require('./renderer');
@@ -26594,15 +26589,36 @@ var _renderer2 = _interopRequireDefault(_renderer);
 
 var _loader = require('./loader');
 
+var _loader2 = _interopRequireDefault(_loader);
+
 var _game = require('./game');
+
+var _game2 = _interopRequireDefault(_game);
 
 document.getElementById('game').appendChild(_renderer2.default.view);
 
-(0, _loader.load)(function (loader, resources) {
-  (0, _game.start)(resources);
+_loader2.default.load(function (loader, resources) {
+  var game = new _game2.default({ resources: resources, renderer: _renderer2.default });
+  game.start();
 });
 
-},{"./game":130,"./loader":132,"./renderer":135}],134:[function(require,module,exports){
+},{"./game":130,"./loader":131,"./renderer":133}],133:[function(require,module,exports){
+Object.defineProperty(exports, '__esModule', {
+  value: true
+});
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+var _pixiJs = require('pixi.js');
+
+var _pixiJs2 = _interopRequireDefault(_pixiJs);
+
+var resolution = window.devicePixelRatio;
+var backgroundColor = 0xfffff;
+exports.default = _pixiJs2.default.autoDetectRenderer(800, 500, { resolution: resolution, backgroundColor: backgroundColor });
+module.exports = exports.default;
+
+},{"pixi.js":112}],134:[function(require,module,exports){
 Object.defineProperty(exports, '__esModule', {
   value: true
 });
@@ -26621,30 +26637,44 @@ var _pixiJs = require('pixi.js');
 
 var _pixiJs2 = _interopRequireDefault(_pixiJs);
 
-var _keys = require('./keys');
+var _utilsKeys = require('../utils/keys');
 
-var _keys2 = _interopRequireDefault(_keys);
+var _utilsKeys2 = _interopRequireDefault(_utilsKeys);
 
-var _utilsAnimator = require('./utils/animator');
+var _utilsAnimator = require('../utils/animator');
 
 var _utilsAnimator2 = _interopRequireDefault(_utilsAnimator);
 
-var _utilsForce = require('./utils/force');
+var _utilsForce = require('../utils/force');
 
 var _utilsForce2 = _interopRequireDefault(_utilsForce);
 
-var Monki = (function (_PIXI$extras$TilingSprite) {
-  _inherits(Monki, _PIXI$extras$TilingSprite);
+var _utilsForceSet = require('../utils/force-set');
 
-  function Monki() {
-    _classCallCheck(this, Monki);
+var _utilsForceSet2 = _interopRequireDefault(_utilsForceSet);
+
+var Hero = (function (_PIXI$extras$TilingSprite) {
+  _inherits(Hero, _PIXI$extras$TilingSprite);
+
+  /**
+   * Create a new Hero.
+   */
+
+  function Hero(_ref) {
+    var tileMatcher = _ref.tileMatcher;
+
+    _classCallCheck(this, Hero);
 
     var texture = _pixiJs2.default.Texture.fromImage('src/textures/mario-sprite.png');
-    _get(Object.getPrototypeOf(Monki.prototype), 'constructor', this).call(this, texture, 16, 32);
+    _get(Object.getPrototypeOf(Hero.prototype), 'constructor', this).call(this, texture, 16, 32);
 
-    this.gravity = new _utilsForce2.default(this, 0, 20, { limit: new _pixiJs2.default.Point(0, 20) });
-    this.jump = new _utilsForce2.default(this, 0, -50, { limit: new _pixiJs2.default.Point(0, -6) });
-    this.velocity = new _utilsForce2.default(this, 100, 0, { limit: new _pixiJs2.default.Point(4) });
+    this.tileMatcher = tileMatcher;
+
+    this.forces = new _utilsForceSet2.default({
+      gravity: new _utilsForce2.default(this, 0, 20, { limit: new _pixiJs2.default.Point(0, 20) }),
+      jump: new _utilsForce2.default(this, 0, -50, { limit: new _pixiJs2.default.Point(0, -6) }),
+      velocity: new _utilsForce2.default(this, 100, 0, { limit: new _pixiJs2.default.Point(4) })
+    });
 
     this.animator = new _utilsAnimator2.default(this);
     this.animator.addAnimation('run', [1, 2, 0], 0);
@@ -26658,47 +26688,39 @@ var Monki = (function (_PIXI$extras$TilingSprite) {
    * @param {number} dt Delta time
    */
 
-  _createClass(Monki, [{
+  _createClass(Hero, [{
     key: 'update',
     value: function update(dt) {
+      this.forces.update(dt);
+
+      this.animator.animations.run.fps = Math.abs(this.forces.velocity.value.x * 4);
       this.animator.update(dt);
-      this.gravity.update(dt);
-      this.jump.update(dt);
-      this.velocity.update(dt);
 
-      this.animator.animations.run.fps = Math.abs(this.velocity.value.x * 4);
-
-      // Jump
-      if (_keys2.default.space && (this.jump.exerting || this.ground)) this.jump.exerting = true;else this.jump.exerting = false;
-
-      // Move
-      this.applyMove();
+      this.updateJump();
+      this.updateMove();
+      this.updateGround();
     }
+
+    /**
+     * Check keys and decide to apply jump or not.
+     */
+
   }, {
-    key: 'applyMove',
-    value: function applyMove() {
-      if (_keys2.default.right) {
-        if (this.velocity.value.x < 0) this.velocity.value.x = 0;
+    key: 'updateJump',
+    value: function updateJump() {
+      this.forces.jump.exerting = _utilsKeys2.default.up && (this.forces.jump.exerting || this.ground);
+    }
 
-        this.velocity.power.x = Math.abs(this.velocity.power.x);
-        this.velocity.limit.x = Math.abs(this.velocity.limit.x);
-        this.velocity.exerting = true;
-        this.tileScale.x = -1;
-        this.animator.setCurrentAnimation('run');
-      } else if (_keys2.default.left) {
-        if (this.velocity.value.x > 0) this.velocity.value.x = 0;
+    /**
+     * Check collision with ground.
+     */
 
-        this.velocity.power.x = -Math.abs(this.velocity.power.x);
-        this.velocity.limit.x = -Math.abs(this.velocity.limit.x);
-        this.velocity.exerting = true;
-        this.tileScale.x = 1;
-        this.animator.setCurrentAnimation('run');
-      } else {
-        this.velocity.exerting = false;
-        this.velocity.reset();
-        this.animator.setCurrentAnimation(null);
-        this.tilePosition.x = this.tileScale.x * this.width - this.width;
-      }
+  }, {
+    key: 'updateGround',
+    value: function updateGround() {
+      var bottomRight = new _pixiJs2.default.Point(this.position.x + this.width, this.position.y + this.height);
+      var bottomLeft = new _pixiJs2.default.Point(this.position.x, this.position.y + this.height);
+      this.setGround(this.getPlatformAtPosition(bottomRight) || this.getPlatformAtPosition(bottomLeft));
     }
 
     /**
@@ -26713,21 +26735,59 @@ var Monki = (function (_PIXI$extras$TilingSprite) {
       this.ground = rect;
 
       if (this.ground) {
-        this.gravity.reset();
-        this.jump.reset();
+        this.forces.gravity.reset();
+        this.forces.jump.reset();
 
         this.position.y = this.ground.y - this.height;
       }
     }
+
+    /**
+     * Get platform at position.
+     *
+     * @param {PIXI.Point} position
+     * @returns {PIXI.Rectangle} rect
+     */
+
+  }, {
+    key: 'getPlatformAtPosition',
+    value: function getPlatformAtPosition(position) {
+      return this.tileMatcher.getTileAtPosition(position, { layer: 'Platforms' });
+    }
+
+    /**
+     * Check keys and apply move.
+     */
+
+  }, {
+    key: 'updateMove',
+    value: function updateMove() {
+      if (_utilsKeys2.default.right || _utilsKeys2.default.left) {
+        var direction = _utilsKeys2.default.right ? 1 : -1;
+
+        if (this.forces.velocity.value.x * direction < 0) this.forces.velocity.value.x = 0;
+
+        this.forces.velocity.power.x = Math.abs(this.forces.velocity.power.x) * direction;
+        this.forces.velocity.limit.x = Math.abs(this.forces.velocity.limit.x) * direction;
+        this.forces.velocity.exerting = true;
+        this.tileScale.x = -direction;
+        this.animator.setCurrentAnimation('run');
+      } else {
+        this.forces.velocity.exerting = false;
+        this.forces.velocity.reset();
+        this.animator.setCurrentAnimation(null);
+        this.tilePosition.x = this.tileScale.x * this.width - this.width;
+      }
+    }
   }]);
 
-  return Monki;
+  return Hero;
 })(_pixiJs2.default.extras.TilingSprite);
 
-exports.default = new Monki();
+exports.default = Hero;
 module.exports = exports.default;
 
-},{"./keys":131,"./utils/animator":138,"./utils/force":139,"pixi.js":112}],135:[function(require,module,exports){
+},{"../utils/animator":137,"../utils/force":139,"../utils/force-set":138,"../utils/keys":140,"pixi.js":112}],135:[function(require,module,exports){
 Object.defineProperty(exports, '__esModule', {
   value: true
 });
@@ -26738,26 +26798,10 @@ var _pixiJs = require('pixi.js');
 
 var _pixiJs2 = _interopRequireDefault(_pixiJs);
 
-var resolution = window.devicePixelRatio;
-var backgroundColor = 0xfffff;
-exports.default = _pixiJs2.default.autoDetectRenderer(800, 500, { resolution: resolution, backgroundColor: backgroundColor });
+exports.default = _pixiJs2.default.Container;
 module.exports = exports.default;
 
 },{"pixi.js":112}],136:[function(require,module,exports){
-Object.defineProperty(exports, '__esModule', {
-  value: true
-});
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
-
-var _pixiJs = require('pixi.js');
-
-var _pixiJs2 = _interopRequireDefault(_pixiJs);
-
-exports.default = new _pixiJs2.default.Container();
-module.exports = exports.default;
-
-},{"pixi.js":112}],137:[function(require,module,exports){
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
@@ -26822,7 +26866,7 @@ var Animation = (function () {
 exports.default = Animation;
 module.exports = exports.default;
 
-},{}],138:[function(require,module,exports){
+},{}],137:[function(require,module,exports){
 Object.defineProperty(exports, '__esModule', {
   value: true
 });
@@ -26900,7 +26944,56 @@ var Animator = (function () {
 exports.default = Animator;
 module.exports = exports.default;
 
-},{"./animation":137}],139:[function(require,module,exports){
+},{"./animation":136}],138:[function(require,module,exports){
+Object.defineProperty(exports, '__esModule', {
+  value: true
+});
+
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+
+var _force = require('./force');
+
+var _force2 = _interopRequireDefault(_force);
+
+var ForceSet = (function () {
+  /**
+   * Create a new set of forces.
+   *
+   * @type {object} forces
+   */
+
+  function ForceSet(forces) {
+    _classCallCheck(this, ForceSet);
+
+    Object.assign(this, forces);
+  }
+
+  /**
+   * Update forces.
+   *
+   * @param {number} dt
+   */
+
+  _createClass(ForceSet, [{
+    key: 'update',
+    value: function update(dt) {
+      for (var key in this) {
+        if (this[key] instanceof _force2.default) this[key].update(dt);
+      }
+    }
+  }]);
+
+  return ForceSet;
+})();
+
+exports.default = ForceSet;
+module.exports = exports.default;
+
+},{"./force":139}],139:[function(require,module,exports){
 Object.defineProperty(exports, '__esModule', {
   value: true
 });
@@ -26942,7 +27035,7 @@ var Force = (function () {
   }
 
   /**
-   * Apply force.
+   * Exert and update clip position.
    *
    * @param {number} dt
    */
@@ -26955,6 +27048,13 @@ var Force = (function () {
       this.clip.x += this.value.x;
       this.clip.y += this.value.y;
     }
+
+    /**
+     * Exert force.
+     *
+     * @param {number} dt
+     */
+
   }, {
     key: 'exert',
     value: function exert(dt) {
@@ -26995,6 +27095,39 @@ exports.default = Force;
 module.exports = exports.default;
 
 },{"pixi.js":112}],140:[function(require,module,exports){
+Object.defineProperty(exports, '__esModule', {
+  value: true
+});
+var states = {};
+var keyMap = {
+  8: 'backspace',
+  9: 'tab',
+  13: 'enter',
+  17: 'ctrl',
+  18: 'alt',
+  20: 'caps',
+  27: 'esc',
+  37: 'left',
+  32: 'space',
+  38: 'up',
+  39: 'right',
+  40: 'down',
+  45: 'insert',
+  46: 'delete'
+};
+
+function changeState(state, e) {
+  var mapped = keyMap[e.keyCode] || String.fromCharCode(e.keyCode);
+  states[mapped.toLowerCase()] = state;
+}
+
+window.addEventListener('keydown', changeState.bind(this, true));
+window.addEventListener('keyup', changeState.bind(this, false));
+
+exports.default = states;
+module.exports = exports.default;
+
+},{}],141:[function(require,module,exports){
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
@@ -27043,7 +27176,7 @@ var TileMatcher = (function () {
 exports.default = TileMatcher;
 module.exports = exports.default;
 
-},{}],141:[function(require,module,exports){
+},{}],142:[function(require,module,exports){
 var tiledMapParser = require('./src/tiledMapParser');
 
 // attach the parser to the global pixi scope
@@ -27058,7 +27191,7 @@ module.exports = {
     Layer : require('./src/Layer'),
     Tile : require('./src/Tile')
 };
-},{"./src/Layer":142,"./src/Tile":143,"./src/TiledMap":144,"./src/Tileset":145,"./src/tiledMapParser":146}],142:[function(require,module,exports){
+},{"./src/Layer":143,"./src/Tile":144,"./src/TiledMap":145,"./src/Tileset":146,"./src/tiledMapParser":147}],143:[function(require,module,exports){
 /**
  * Layer
  * @constructor
@@ -27089,7 +27222,7 @@ Layer.prototype.getTilesByGid = function(gids)
 
 module.exports = Layer;
 
-},{}],143:[function(require,module,exports){
+},{}],144:[function(require,module,exports){
 /**
  * Tile
  * @constructor
@@ -27104,7 +27237,7 @@ var Tile = function(gid, texture)
 Tile.prototype = Object.create(PIXI.Sprite.prototype);
 
 module.exports = Tile;
-},{}],144:[function(require,module,exports){
+},{}],145:[function(require,module,exports){
 /**
  * Map
  * @constructor
@@ -27137,7 +27270,7 @@ TiledMap.prototype.getTilesByGid = function(gids)
 };
 
 module.exports = TiledMap;
-},{}],145:[function(require,module,exports){
+},{}],146:[function(require,module,exports){
 /**
  * Tileset
  * @constructor
@@ -27202,7 +27335,7 @@ Tileset.prototype.updateTextures = function () {
 
 module.exports = Tileset;
 
-},{}],146:[function(require,module,exports){
+},{}],147:[function(require,module,exports){
 var TiledMap = require('./TiledMap');
 var Tileset = require('./Tileset');
 var Layer = require('./Layer');
@@ -27352,4 +27485,4 @@ module.exports = function() {
     };
 };
 
-},{"./Layer":142,"./Tile":143,"./TiledMap":144,"./Tileset":145,"path":1}]},{},[133]);
+},{"./Layer":143,"./Tile":144,"./TiledMap":145,"./Tileset":146,"path":1}]},{},[132]);

@@ -7,8 +7,10 @@ import 'pixi-tiled';
  * @param {function} cb
  */
 
-export function load(cb) {
+function load(cb) {
   PIXI.loader
     .add('world', 'src/maps/world.json')
     .load(cb);
 }
+
+export default {load};

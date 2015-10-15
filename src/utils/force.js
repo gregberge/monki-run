@@ -20,7 +20,7 @@ export default class Force {
   }
 
   /**
-   * Apply force.
+   * Exert and update clip position.
    *
    * @param {number} dt
    */
@@ -31,6 +31,12 @@ export default class Force {
     this.clip.x += this.value.x;
     this.clip.y += this.value.y;
   }
+
+  /**
+   * Exert force.
+   *
+   * @param {number} dt
+   */
 
   exert(dt) {
     if (!this.exerting)

@@ -1,43 +1,55 @@
-import PIXI from 'pixi.js';
-import monki from './monki';
-import renderer from './renderer';
-import stage from './stage';
+import Stage from './sprites/stage';
+import Hero from './sprites/hero';
 import TileMatcher from './utils/tile-matcher';
 
-/**
- * Start the game.
- */
+export default class Game {
 
-export function start({world}) {
-  const tileMatcher = new TileMatcher(world);
+  /**
+   * Create a new game.
+   *
+   * @param {object} resources
+   */
 
-  monki.position.x = 20;
+  constructor({resources: {world}, renderer}) {
+    this.loop = this.loop.bind(this);
 
-  stage.addChild(world.tiledMap);
-  stage.addChild(monki);
+    this.renderer = renderer;
+    this.tileMatcher = new TileMatcher(world);
 
-  function update () {
-    requestAnimationFrame(update);
-
-    // Compute delta time
-    const dt = lastCalledTime ? (Date.now() - lastCalledTime) / 1000 : 0;
-
-    // Update monki
-    monki.update(dt);
-
-    const monkiBottomRight = new PIXI.Point(monki.position.x + monki.width, monki.position.y + monki.height);
-    const monkiBottomLeft = new PIXI.Point(monki.position.x, monki.position.y + monki.height);
-    monki.setGround(
-      tileMatcher.getTileAtPosition(monkiBottomRight, {layer: 'Platforms'}) ||
-        tileMatcher.getTileAtPosition(monkiBottomLeft, {layer: 'Platforms'})
-    );
-
-    // Render container
-    renderer.render(stage);
-
-    lastCalledTime = Date.now();
+    this.stage = new Stage();
+    this.hero = new Hero({tileMatcher: this.tileMatcher});
+    this.stage.addChild(world.tiledMap);
+    this.stage.addChild(this.hero);
   }
 
-  let lastCalledTime;
-  requestAnimationFrame(update);
+  /**
+   * Start game.
+   */
+
+  start() {
+    requestAnimationFrame(this.loop);
+  }
+
+  /**
+   * Loop of the game.
+   */
+
+  loop() {
+    const dt = this.lastLoopTime ?
+      (Date.now() - this.lastLoopTime) / 1000 : 0;
+    this.update(dt);
+    this.lastLoopTime = Date.now();
+    requestAnimationFrame(this.loop);
+  }
+
+  /**
+   * Called at each requestAnimationFrame.
+   *
+   * @param {number} dt
+   */
+
+  update(dt) {
+    this.hero.update(dt);
+    this.renderer.render(this.stage);
+  }
 }
