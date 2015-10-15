@@ -1,6 +1,8 @@
 import Stage from './sprites/stage';
 import Hero from './sprites/hero';
+import Tortle from './sprites/tortle';
 import TileMatcher from './utils/tile-matcher';
+import GroundMatcher from './utils/ground-matcher';
 
 export default class Game {
 
@@ -14,12 +16,16 @@ export default class Game {
     this.loop = this.loop.bind(this);
 
     this.renderer = renderer;
-    this.tileMatcher = new TileMatcher(world);
+    const tileMatcher = new TileMatcher(world);
+    const groundMatcher = this.groundMatcher = new GroundMatcher(tileMatcher);
 
     this.stage = new Stage();
-    this.hero = new Hero({tileMatcher: this.tileMatcher});
+    this.hero = new Hero({groundMatcher});
+    this.tortle = new Tortle({groundMatcher});
+    this.tortle.x = 200;
     this.stage.addChild(world.tiledMap);
     this.stage.addChild(this.hero);
+    this.stage.addChild(this.tortle);
   }
 
   /**
@@ -50,6 +56,7 @@ export default class Game {
 
   update(dt) {
     this.hero.update(dt);
+    this.tortle.update(dt);
     this.renderer.render(this.stage);
   }
 }

@@ -4,15 +4,13 @@ export default class Force {
   /**
    * Create a new force.
    *
-   * @param {PIXI.DisplayObject} clip
    * @param {number} x
    * @param {number} y
    * @param {object} options
    * @param {PIXI.Point} options.limit
    */
 
-  constructor(clip, x, y, {limit = new PIXI.Point(0, 0)} = {}) {
-    this.clip = clip;
+  constructor(x, y, {limit = new PIXI.Point(0, 0)} = {}) {
     this.power = new PIXI.Point(x, y);
     this.value = new PIXI.Point(0, 0);
     this.limit = limit;
@@ -23,13 +21,14 @@ export default class Force {
    * Exert and update clip position.
    *
    * @param {number} dt
+   * @param {PIXI.DisplayObject}
    */
 
-  update(dt) {
+  update(dt, clip) {
     this.exert(dt);
 
-    this.clip.x += this.value.x;
-    this.clip.y += this.value.y;
+    clip.x += this.value.x;
+    clip.y += this.value.y;
   }
 
   /**

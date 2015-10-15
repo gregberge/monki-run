@@ -15,12 +15,13 @@ export default class ForceSet {
    * Update forces.
    *
    * @param {number} dt
+   * @param {DisplayObject} clip
    */
 
-  update(dt) {
+  update(dt, clip) {
     for (const key in this) {
       if (this[key] instanceof Force)
-        this[key].update(dt);
+        this[key].update(dt, clip);
     }
   }
 }
