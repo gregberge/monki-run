@@ -4,6 +4,7 @@ import Animator from '../utils/animator';
 import gravity from '../forces/gravity';
 import Force from '../utils/force';
 import ForceSet from '../utils/force-set';
+import XMover from '../utils/x-mover';
 
 export default class Hero extends PIXI.extras.TilingSprite {
 
@@ -26,7 +27,7 @@ export default class Hero extends PIXI.extras.TilingSprite {
     this.animator = new Animator(this);
     this.animator.addAnimation('run', [1, 2, 0], 0);
 
-    this.ground = [];
+    this.xMover = new XMover(this);
   }
 
   /**
@@ -54,8 +55,8 @@ export default class Hero extends PIXI.extras.TilingSprite {
    */
 
   updateJump() {
-    this.forces.jump.exerting = keys.up &&
-      (this.forces.jump.exerting || this.ground);
+    this.forces.jump.exerting = keys.up
+      && (this.forces.jump.exerting || this.groundMatcher.ground);
   }
 
   /**
@@ -63,22 +64,11 @@ export default class Hero extends PIXI.extras.TilingSprite {
    */
 
   updateMove() {
-    if (keys.right || keys.left) {
-      const direction = keys.right ? 1 : -1;
-
-      if (this.forces.velocity.value.x * direction < 0)
-        this.forces.velocity.value.x = 0;
-
-      this.forces.velocity.power.x = Math.abs(this.forces.velocity.power.x) * direction;
-      this.forces.velocity.limit.x = Math.abs(this.forces.velocity.limit.x) * direction;
-      this.forces.velocity.exerting = true;
-      this.tileScale.x = -direction;
-      this.animator.setCurrentAnimation('run');
-    } else {
-      this.forces.velocity.exerting = false;
-      this.forces.velocity.reset();
-      this.animator.setCurrentAnimation(null);
-      this.tilePosition.x = this.tileScale.x * this.width - this.width;
-    }
+    if (keys.right)
+      this.xMover.update(XMover.RIGHT_DIRECTION);
+    else if (keys.left)
+      this.xMover.update(XMover.LEFT_DIRECTION);
+    else
+      this.xMover.update(null);
   }
 }

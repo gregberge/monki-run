@@ -18,9 +18,9 @@ export default class TileMatcher {
    */
 
   getTileAtPosition(position, options = {}) {
-    const container = options.layer ?
-      this.world.tiledMap.getLayerByName(options.layer) :
-      this.world.tiledMap;
+    const container = options.layer
+      ? this.world.tiledMap.getLayerByName(options.layer)
+      : this.world.tiledMap;
 
     const x = Math.floor(position.x / this.world.data.tilewidth);
     const y = Math.floor(position.y / this.world.data.tileheight);

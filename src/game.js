@@ -41,8 +41,8 @@ export default class Game {
    */
 
   loop() {
-    const dt = this.lastLoopTime ?
-      (Date.now() - this.lastLoopTime) / 1000 : 0;
+    const dt = this.lastLoopTime
+      ? (Date.now() - this.lastLoopTime) / 1000 : 0;
     this.update(dt);
     this.lastLoopTime = Date.now();
     requestAnimationFrame(this.loop);

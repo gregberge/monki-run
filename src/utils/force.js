@@ -47,16 +47,16 @@ export default class Force {
     this.value.y += step.y;
 
     if (
-      (this.limit.y > 0 && this.value.y > this.limit.y) ||
-      (this.limit.y < 0 && this.value.y < this.limit.y)
+      (this.limit.y > 0 && this.value.y > this.limit.y)
+        || (this.limit.y < 0 && this.value.y < this.limit.y)
     ) {
       this.limited = true;
       this.value.y = this.limit.y;
     }
 
     if (
-      (this.limit.x > 0 && this.value.x > this.limit.x) ||
-      (this.limit.x < 0 && this.value.x < this.limit.x)
+      (this.limit.x > 0 && this.value.x > this.limit.x)
+      || (this.limit.x < 0 && this.value.x < this.limit.x)
     ) {
       this.limited = true;
       this.value.x = this.limit.x;

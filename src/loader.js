@@ -6,7 +6,6 @@ import 'pixi-tiled';
  *
  * @param {function} cb
  */
-
 function load(cb) {
   PIXI.loader
     .add('world', 'src/maps/world.json')

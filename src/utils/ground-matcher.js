@@ -7,6 +7,7 @@ export default class GroundMatcher {
 
   constructor(tileMatcher) {
     this.tileMatcher = tileMatcher;
+    this.ground = null;
   }
 
   /**
@@ -18,19 +19,19 @@ export default class GroundMatcher {
   update(sprite) {
     const bottomRight = new Point(sprite.position.x + sprite.width, sprite.position.y + sprite.height);
     const bottomLeft = new Point(sprite.position.x, sprite.position.y + sprite.height);
-    const ground = this.getPlatformAtPosition(bottomRight) ||
-      this.getPlatformAtPosition(bottomLeft);
+    this.leftGround = this.getPlatformAtPosition(bottomLeft);
+    this.rightGround = this.getPlatformAtPosition(bottomRight);
+    this.fullGround = this.leftGround && this.rightGround;
+    this.ground = this.leftGround || this.rightGround;
 
-    sprite.ground = ground;
-
-    if (ground) {
+    if (this.ground) {
       if (sprite.forces.gravity)
         sprite.forces.gravity.reset();
 
       if (sprite.forces.jump)
         sprite.forces.jump.reset();
 
-      sprite.position.y = sprite.ground.y - sprite.height;
+      sprite.position.y = this.ground.y - sprite.height;
     }
   }
 

@@ -11,7 +11,7 @@ const jsBuild = {
   dest: './build'
 };
 
-var lastBuildErrored = false;
+let lastBuildErrored = false;
 
 gulp.task('browsersync', () =>
   browserSync.init({
@@ -42,7 +42,6 @@ gulp.task('js:watch', () => {
  * @param {object} args
  * @returns {object}
  */
-
 function createBundler(args) {
   const browserify = require('browserify');
 
@@ -60,7 +59,6 @@ function createBundler(args) {
  * @param {boolean} [options.catchErrors]
  * @returns {Stream}
  */
-
 function bundle(bundler, options) {
   options = options || {};
   gutil.log('Bundling...');

@@ -34,8 +34,8 @@ export default class Animator {
 
   setCurrentAnimation(name) {
     if (
-      this.currentAnimation &&
-      this.currentAnimation !== this.animations[name]
+      this.currentAnimation
+        && this.currentAnimation !== this.animations[name]
     )
       this.currentAnimation.reset();
 

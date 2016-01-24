@@ -16,8 +16,14 @@ const keyMap = {
   46: 'delete'
 };
 
+/**
+ * Change state of the key.
+ *
+ * @param {boolean} state
+ * @param {Event} e
+ */
 function changeState(state, e) {
-  var mapped = keyMap[e.keyCode] || String.fromCharCode(e.keyCode);
+  const mapped = keyMap[e.keyCode] || String.fromCharCode(e.keyCode);
   states[mapped.toLowerCase()] = state;
 }
 
